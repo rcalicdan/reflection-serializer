@@ -1,0 +1,13 @@
+{
+    "name": "rcalicdan/reflection-serializer",
+    "description": "Library for serializing and unserializing reflection metadata and attributes",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Rcalicdan\\ReflectionSerializer\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {}
+}
