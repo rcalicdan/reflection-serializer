@@ -4,19 +4,16 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Interfaces;
 
-interface ReflectionClassInterface
+interface ReflectionClassInterface extends
+    HasNameInterface,
+    IsAbstractInterface,
+    IsFinalInterface,
+    IsReadOnlyInterface,
+    HasAttributesInterface
 {
-    public function getName(): string;
-
     public function getShortName(): string;
 
     public function getNamespaceName(): string;
-
-    public function isAbstract(): bool;
-
-    public function isFinal(): bool;
-
-    public function isReadOnly(): bool;
 
     public function isInterface(): bool;
 
@@ -26,13 +23,6 @@ interface ReflectionClassInterface
 
     public function isAnonymous(): bool;
 
-    /**
-     * Returns the FQCN of the parent class or false if none.
-     * Note: Deviates from PHP's ReflectionClass::getParentClass()
-     * which returns ReflectionClass|false. Since we only store
-     * the parent FQCN and not its full reflection data, we
-     * return string|false instead.
-     */
     public function getParentClass(): string|false;
 
     /**
@@ -75,9 +65,4 @@ interface ReflectionClassInterface
      * @return ReflectionClassConstantInterface[]
      */
     public function getReflectionConstants(): array;
-
-    /**
-     * @return ReflectionAttributeInterface[]
-     */
-    public function getAttributes(): array;
 }
