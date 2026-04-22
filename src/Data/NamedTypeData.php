@@ -8,7 +8,7 @@ use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionNamedTypeInterface;
 
 readonly class NamedTypeData implements ReflectionNamedTypeInterface
 {
-    private const array BUILTINS = [
+    private const array BUILTINS =[
         'int', 'float', 'string', 'bool', 'array',
         'object', 'null', 'void', 'never', 'mixed',
         'callable', 'iterable', 'self', 'static', 'parent',
@@ -17,7 +17,14 @@ readonly class NamedTypeData implements ReflectionNamedTypeInterface
     public function __construct(
         private string $name,
         private bool $nullable,
-    ) {
+    ) {}
+
+    public static function fromReflection(\ReflectionNamedType $type): self
+    {
+        return new self(
+            name: $type->getName(),
+            nullable: $type->allowsNull(),
+        );
     }
 
     public function getName(): string

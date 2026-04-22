@@ -21,32 +21,26 @@ readonly class ParameterData implements ReflectionParameterInterface
         private bool $promoted,
         private bool $hasDefault,
         private mixed $defaultValue,
-        /**
-         * @var AttributeData[]
-         */
+        /** @var AttributeData[] */
         private array $attributes,
-    ) {
-    }
+    ) {}
 
     public static function fromReflection(\ReflectionParameter $parameter): self
     {
         [$hasDefault, $defaultValue] = self::resolveDefault($parameter);
 
         return new self(
-            name:           $parameter->getName(),
-            position:       $parameter->getPosition(),
-            type:           TypeResolver::resolve(
-                $parameter->getType(),
-                $parameter->allowsNull(),
-            ),
-            nullable:       $parameter->allowsNull(),
-            variadic:       $parameter->isVariadic(),
+            name: $parameter->getName(),
+            position: $parameter->getPosition(),
+            type: TypeResolver::resolve($parameter->getType()),
+            nullable: $parameter->allowsNull(),
+            variadic: $parameter->isVariadic(),
             passByReference: $parameter->isPassedByReference(),
-            promoted:       $parameter->isPromoted(),
-            hasDefault:     $hasDefault,
-            defaultValue:   $defaultValue,
-            attributes:     array_map(
-                fn (\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+            promoted: $parameter->isPromoted(),
+            hasDefault: $hasDefault,
+            defaultValue: $defaultValue,
+            attributes: array_map(
+                fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
                 $parameter->getAttributes(),
             ),
         );
@@ -124,8 +118,8 @@ readonly class ParameterData implements ReflectionParameterInterface
         }
 
         $name = ($this->passByReference ? '&' : '')
-              . ($this->variadic ? '...' : '')
-              . '$' . $this->name;
+            . ($this->variadic ? '...' : '')
+            . '$' . $this->name;
 
         $parts[] = $name;
 
@@ -138,7 +132,7 @@ readonly class ParameterData implements ReflectionParameterInterface
 
     private static function resolveDefault(\ReflectionParameter $parameter): array
     {
-        if ($parameter->isVariadic() || ! $parameter->isOptional()) {
+        if ($parameter->isVariadic() || !$parameter->isOptional()) {
             return [false, null];
         }
 

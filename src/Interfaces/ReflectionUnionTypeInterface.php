@@ -7,7 +7,7 @@ namespace Rcalicdan\ReflectionSerializer\Interfaces;
 interface ReflectionUnionTypeInterface extends ReflectionTypeInterface
 {
     /**
-     * @return ReflectionNamedTypeInterface[]
+     * @return ReflectionTypeInterface[]
      */
     public function getTypes(): array;
 }
