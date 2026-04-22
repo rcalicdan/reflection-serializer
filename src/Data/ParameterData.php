@@ -21,9 +21,12 @@ readonly class ParameterData implements ReflectionParameterInterface
         private bool $promoted,
         private bool $hasDefault,
         private mixed $defaultValue,
-        /** @var AttributeData[] */
+        /**
+         * @var AttributeData[]
+         */
         private array $attributes,
-    ) {}
+    ) {
+    }
 
     public static function fromReflection(\ReflectionParameter $parameter): self
     {
@@ -33,9 +36,9 @@ readonly class ParameterData implements ReflectionParameterInterface
             name:           $parameter->getName(),
             position:       $parameter->getPosition(),
             type:           TypeResolver::resolve(
-                                $parameter->getType(),
-                                $parameter->allowsNull(),
-                            ),
+                $parameter->getType(),
+                $parameter->allowsNull(),
+            ),
             nullable:       $parameter->allowsNull(),
             variadic:       $parameter->isVariadic(),
             passByReference: $parameter->isPassedByReference(),
@@ -43,9 +46,9 @@ readonly class ParameterData implements ReflectionParameterInterface
             hasDefault:     $hasDefault,
             defaultValue:   $defaultValue,
             attributes:     array_map(
-                                fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
-                                $parameter->getAttributes(),
-                            ),
+                fn (\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                $parameter->getAttributes(),
+            ),
         );
     }
 
@@ -135,7 +138,7 @@ readonly class ParameterData implements ReflectionParameterInterface
 
     private static function resolveDefault(\ReflectionParameter $parameter): array
     {
-        if ($parameter->isVariadic() || !$parameter->isOptional()) {
+        if ($parameter->isVariadic() || ! $parameter->isOptional()) {
             return [false, null];
         }
 

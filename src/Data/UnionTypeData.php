@@ -10,9 +10,12 @@ use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionUnionTypeInterface;
 readonly class UnionTypeData implements ReflectionUnionTypeInterface
 {
     public function __construct(
-        /** @var NamedTypeData[] */
+        /**
+         * @var NamedTypeData[]
+         */
         private array $types,
-    ) {}
+    ) {
+    }
 
     /**
      * @return ReflectionNamedTypeInterface[]
@@ -36,7 +39,7 @@ readonly class UnionTypeData implements ReflectionUnionTypeInterface
     public function __toString(): string
     {
         return implode('|', array_map(
-            fn(NamedTypeData $t) => $t->getName(),
+            fn (NamedTypeData $t) => $t->getName(),
             $this->types,
         ));
     }

@@ -17,7 +17,8 @@ readonly class NamedTypeData implements ReflectionNamedTypeInterface
     public function __construct(
         private string $name,
         private bool $nullable,
-    ) {}
+    ) {
+    }
 
     public function getName(): string
     {

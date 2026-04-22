@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Internal;
 
-use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionTypeInterface;
 use Rcalicdan\ReflectionSerializer\Data\IntersectionTypeData;
 use Rcalicdan\ReflectionSerializer\Data\NamedTypeData;
 use Rcalicdan\ReflectionSerializer\Data\UnionTypeData;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionTypeInterface;
 
 /**
  * @internal
@@ -22,8 +22,8 @@ final class TypeResolver
         }
 
         return match (true) {
-            $type instanceof \ReflectionNamedType        => NamedTypeData::fromReflection($type),
-            $type instanceof \ReflectionUnionType        => UnionTypeData::fromReflection($type),
+            $type instanceof \ReflectionNamedType => NamedTypeData::fromReflection($type),
+            $type instanceof \ReflectionUnionType => UnionTypeData::fromReflection($type),
             $type instanceof \ReflectionIntersectionType => IntersectionTypeData::fromReflection($type),
         };
     }
@@ -34,28 +34,28 @@ final class TypeResolver
     public static function fromArray(array $data): ReflectionTypeInterface
     {
         return match ($data['kind']) {
-            'named'        => new NamedTypeData(
-                                  name:     $data['name'],
-                                  nullable: $data['nullable'],
-                              ),
-            'union'        => new UnionTypeData(
-                                  types: array_map(
-                                      fn(array $t) => new NamedTypeData(
-                                          name:     $t['name'],
-                                          nullable: $t['nullable'],
-                                      ),
-                                      $data['types'],
-                                  ),
-                              ),
+            'named' => new NamedTypeData(
+                name:     $data['name'],
+                nullable: $data['nullable'],
+            ),
+            'union' => new UnionTypeData(
+                types: array_map(
+                    fn (array $t) => new NamedTypeData(
+                        name:     $t['name'],
+                        nullable: $t['nullable'],
+                    ),
+                    $data['types'],
+                ),
+            ),
             'intersection' => new IntersectionTypeData(
-                                  types: array_map(
-                                      fn(array $t) => new NamedTypeData(
-                                          name:     $t['name'],
-                                          nullable: false,
-                                      ),
-                                      $data['types'],
-                                  ),
-                              ),
+                types: array_map(
+                    fn (array $t) => new NamedTypeData(
+                        name:     $t['name'],
+                        nullable: false,
+                    ),
+                    $data['types'],
+                ),
+            ),
             default => throw new \InvalidArgumentException(
                 "Unknown type kind: {$data['kind']}"
             ),

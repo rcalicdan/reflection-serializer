@@ -22,9 +22,12 @@ readonly class PropertyData implements ReflectionPropertyInterface
         private bool $promoted,
         private bool $hasDefault,
         private mixed $defaultValue,
-        /** @var AttributeData[] */
+        /**
+         * @var AttributeData[]
+         */
         private array $attributes,
-    ) {}
+    ) {
+    }
 
     public static function fromReflection(\ReflectionProperty $property): self
     {
@@ -33,9 +36,9 @@ readonly class PropertyData implements ReflectionPropertyInterface
         return new self(
             name:         $property->getName(),
             type:         TypeResolver::resolve(
-                              $property->getType(),
-                              $property->getType()?->allowsNull() ?? false,
-                          ),
+                $property->getType(),
+                $property->getType()?->allowsNull() ?? false,
+            ),
             public:       $property->isPublic(),
             protected:    $property->isProtected(),
             private:      $property->isPrivate(),
@@ -45,9 +48,9 @@ readonly class PropertyData implements ReflectionPropertyInterface
             hasDefault:   $hasDefault,
             defaultValue: $defaultValue,
             attributes:   array_map(
-                              fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
-                              $property->getAttributes(),
-                          ),
+                fn (\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                $property->getAttributes(),
+            ),
         );
     }
 
@@ -117,9 +120,9 @@ readonly class PropertyData implements ReflectionPropertyInterface
     public function visibility(): string
     {
         return match (true) {
-            $this->public    => 'public',
+            $this->public => 'public',
             $this->protected => 'protected',
-            $this->private   => 'private',
+            $this->private => 'private',
         };
     }
 
@@ -141,7 +144,7 @@ readonly class PropertyData implements ReflectionPropertyInterface
 
         $parts[] = '$' . $this->name;
 
-        if ($this->hasDefault && !$this->promoted) {
+        if ($this->hasDefault && ! $this->promoted) {
             $parts[] = '= ' . ValueExporter::export($this->defaultValue);
         }
 
@@ -154,7 +157,7 @@ readonly class PropertyData implements ReflectionPropertyInterface
             return [false, null];
         }
 
-        if (!$property->hasDefaultValue()) {
+        if (! $property->hasDefaultValue()) {
             return [false, null];
         }
 

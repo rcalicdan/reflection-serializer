@@ -12,7 +12,8 @@ readonly class AttributeData implements ReflectionAttributeInterface
         private string $name,
         private int $target,
         private array $arguments,
-    ) {}
+    ) {
+    }
 
     public static function fromReflection(\ReflectionAttribute $attribute): self
     {

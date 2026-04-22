@@ -21,11 +21,16 @@ readonly class MethodData implements ReflectionMethodInterface
         private bool $constructor,
         private bool $destructor,
         private ?ReflectionTypeInterface $returnType,
-        /** @var ParameterData[] */
+        /**
+         * @var ParameterData[]
+         */
         private array $parameters,
-        /** @var AttributeData[] */
+        /**
+         * @var AttributeData[]
+         */
         private array $attributes,
-    ) {}
+    ) {
+    }
 
     public static function fromReflection(\ReflectionMethod $method): self
     {
@@ -40,17 +45,17 @@ readonly class MethodData implements ReflectionMethodInterface
             constructor: $method->isConstructor(),
             destructor:  $method->isDestructor(),
             returnType:  TypeResolver::resolve(
-                             $method->getReturnType(),
-                             $method->getReturnType()?->allowsNull() ?? false,
-                         ),
+                $method->getReturnType(),
+                $method->getReturnType()?->allowsNull() ?? false,
+            ),
             parameters:  array_map(
-                             fn(\ReflectionParameter $p) => ParameterData::fromReflection($p),
-                             $method->getParameters(),
-                         ),
+                fn (\ReflectionParameter $p) => ParameterData::fromReflection($p),
+                $method->getParameters(),
+            ),
             attributes:  array_map(
-                             fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
-                             $method->getAttributes(),
-                         ),
+                fn (\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                $method->getAttributes(),
+            ),
         );
     }
 
@@ -130,9 +135,9 @@ readonly class MethodData implements ReflectionMethodInterface
     public function visibility(): string
     {
         return match (true) {
-            $this->public    => 'public',
+            $this->public => 'public',
             $this->protected => 'protected',
-            $this->private   => 'private',
+            $this->private => 'private',
         };
     }
 
@@ -153,7 +158,7 @@ readonly class MethodData implements ReflectionMethodInterface
         }
 
         $params = implode(', ', array_map(
-            fn(ParameterData $p) => $p->toString(),
+            fn (ParameterData $p) => $p->toString(),
             $this->parameters,
         ));
 

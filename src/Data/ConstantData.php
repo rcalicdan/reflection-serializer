@@ -16,9 +16,12 @@ readonly class ConstantData implements ReflectionClassConstantInterface
         private bool $protected,
         private bool $private,
         private bool $final,
-        /** @var AttributeData[] */
+        /**
+         * @var AttributeData[]
+         */
         private array $attributes,
-    ) {}
+    ) {
+    }
 
     public static function fromReflection(\ReflectionClassConstant $constant): self
     {
@@ -30,7 +33,7 @@ readonly class ConstantData implements ReflectionClassConstantInterface
             private:   $constant->isPrivate(),
             final:     $constant->isFinal(),
             attributes: array_map(
-                fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                fn (\ReflectionAttribute $a) => AttributeData::fromReflection($a),
                 $constant->getAttributes(),
             ),
         );
@@ -77,9 +80,9 @@ readonly class ConstantData implements ReflectionClassConstantInterface
     public function visibility(): string
     {
         return match (true) {
-            $this->public    => 'public',
+            $this->public => 'public',
             $this->protected => 'protected',
-            $this->private   => 'private',
+            $this->private => 'private',
         };
     }
 

@@ -7,14 +7,23 @@ namespace Rcalicdan\ReflectionSerializer\Interfaces;
 interface ReflectionClassInterface
 {
     public function getName(): string;
+
     public function getShortName(): string;
+
     public function getNamespaceName(): string;
+
     public function isAbstract(): bool;
+
     public function isFinal(): bool;
+
     public function isReadOnly(): bool;
+
     public function isInterface(): bool;
+
     public function isTrait(): bool;
+
     public function isEnum(): bool;
+
     public function isAnonymous(): bool;
 
     /**
@@ -37,12 +46,19 @@ interface ReflectionClassInterface
     public function getTraitNames(): array;
 
     public function implementsInterface(string $interface): bool;
+
     public function usesTrait(string $trait): bool;
+
     public function hasMethod(string $name): bool;
+
     public function hasProperty(string $name): bool;
+
     public function hasConstant(string $name): bool;
+
     public function getConstructor(): ?ReflectionMethodInterface;
+
     public function getMethod(string $name): ReflectionMethodInterface;
+
     public function getProperty(string $name): ReflectionPropertyInterface;
 
     /**

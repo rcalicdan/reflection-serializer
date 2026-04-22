@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Data;
 
+use Rcalicdan\ReflectionSerializer\Exception\MethodNotFoundException;
+use Rcalicdan\ReflectionSerializer\Exception\PropertyNotFoundException;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionAttributeInterface;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionClassConstantInterface;
 use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionClassInterface;
 use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionMethodInterface;
 use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionPropertyInterface;
-use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionClassConstantInterface;
-use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionAttributeInterface;
-use Rcalicdan\ReflectionSerializer\Exception\MethodNotFoundException;
-use Rcalicdan\ReflectionSerializer\Exception\PropertyNotFoundException;
 
 readonly class ClassData implements ReflectionClassInterface
 {
@@ -26,19 +26,32 @@ readonly class ClassData implements ReflectionClassInterface
         private bool $enum,
         private bool $anonymous,
         private ?string $parent,
-        /** @var string[] */
+        /**
+         * @var string[]
+         */
         private array $interfaces,
-        /** @var string[] */
+        /**
+         * @var string[]
+         */
         private array $traits,
-        /** @var ConstantData[] */
+        /**
+         * @var ConstantData[]
+         */
         private array $constants,
-        /** @var PropertyData[] */
+        /**
+         * @var PropertyData[]
+         */
         private array $properties,
-        /** @var MethodData[] */
+        /**
+         * @var MethodData[]
+         */
         private array $methods,
-        /** @var AttributeData[] */
+        /**
+         * @var AttributeData[]
+         */
         private array $attributes,
-    ) {}
+    ) {
+    }
 
     // --- Named factories ---
 
@@ -61,19 +74,19 @@ readonly class ClassData implements ReflectionClassInterface
             interfaces: array_keys($class->getInterfaces()),
             traits: array_keys($class->getTraits()),
             constants: array_values(array_map(
-                fn(\ReflectionClassConstant $c) => ConstantData::fromReflection($c),
+                fn (\ReflectionClassConstant $c) => ConstantData::fromReflection($c),
                 $class->getReflectionConstants(),
             )),
             properties: array_values(array_map(
-                fn(\ReflectionProperty $p) => PropertyData::fromReflection($p),
+                fn (\ReflectionProperty $p) => PropertyData::fromReflection($p),
                 $class->getProperties(),
             )),
             methods: array_values(array_map(
-                fn(\ReflectionMethod $m) => MethodData::fromReflection($m),
+                fn (\ReflectionMethod $m) => MethodData::fromReflection($m),
                 $class->getMethods(),
             )),
             attributes: array_map(
-                fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                fn (\ReflectionAttribute $a) => AttributeData::fromReflection($a),
                 $class->getAttributes(),
             ),
         );
