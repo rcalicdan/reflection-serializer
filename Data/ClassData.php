@@ -4,32 +4,40 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Data;
 
-readonly class ClassData
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionClassInterface;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionMethodInterface;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionPropertyInterface;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionClassConstantInterface;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionAttributeInterface;
+use Rcalicdan\ReflectionSerializer\Exception\MethodNotFoundException;
+use Rcalicdan\ReflectionSerializer\Exception\PropertyNotFoundException;
+
+readonly class ClassData implements ReflectionClassInterface
 {
     public function __construct(
-        public string $name,
-        public string $shortName,
-        public string $namespace,
-        public bool $isAbstract,
-        public bool $isFinal,
-        public bool $isReadonly,
-        public bool $isInterface,
-        public bool $isTrait,
-        public bool $isEnum,
-        public bool $isAnonymous,
-        public ?string $parent,
+        private string $name,
+        private string $shortName,
+        private string $namespace,
+        private bool $abstract,
+        private bool $final,
+        private bool $readonly,
+        private bool $interface,
+        private bool $trait,
+        private bool $enum,
+        private bool $anonymous,
+        private ?string $parent,
         /** @var string[] */
-        public array $interfaces,
+        private array $interfaces,
         /** @var string[] */
-        public array $traits,
+        private array $traits,
         /** @var ConstantData[] */
-        public array $constants,
+        private array $constants,
         /** @var PropertyData[] */
-        public array $properties,
+        private array $properties,
         /** @var MethodData[] */
-        public array $methods,
+        private array $methods,
         /** @var AttributeData[] */
-        public array $attributes,
+        private array $attributes,
     ) {}
 
     // --- Named factories ---
@@ -37,49 +45,160 @@ readonly class ClassData
     public static function fromReflection(\ReflectionClass $class): self
     {
         return new self(
-            name:        $class->getName(),
-            shortName:   $class->getShortName(),
-            namespace:   $class->getNamespaceName(),
-            isAbstract:  $class->isAbstract(),
-            isFinal:     $class->isFinal(),
-            isReadonly:  $class->isReadOnly(),
-            isInterface: $class->isInterface(),
-            isTrait:     $class->isTrait(),
-            isEnum:      $class->isEnum(),
-            isAnonymous: $class->isAnonymous(),
-            parent:      $class->getParentClass()
-                            ? $class->getParentClass()->getName()
-                            : null,
-            interfaces:  array_keys($class->getInterfaces()),
-            traits:      array_keys($class->getTraits()),
-            constants:   self::resolveConstants($class),
-            properties:  self::resolveProperties($class),
-            methods:     self::resolveMethods($class),
-            attributes:  self::resolveAttributes($class),
+            name: $class->getName(),
+            shortName: $class->getShortName(),
+            namespace: $class->getNamespaceName(),
+            abstract: $class->isAbstract(),
+            final: $class->isFinal(),
+            readonly: $class->isReadOnly(),
+            interface: $class->isInterface(),
+            trait: $class->isTrait(),
+            enum: $class->isEnum(),
+            anonymous: $class->isAnonymous(),
+            parent: $class->getParentClass()
+                ? $class->getParentClass()->getName()
+                : null,
+            interfaces: array_keys($class->getInterfaces()),
+            traits: array_keys($class->getTraits()),
+            constants: array_values(array_map(
+                fn(\ReflectionClassConstant $c) => ConstantData::fromReflection($c),
+                $class->getReflectionConstants(),
+            )),
+            properties: array_values(array_map(
+                fn(\ReflectionProperty $p) => PropertyData::fromReflection($p),
+                $class->getProperties(),
+            )),
+            methods: array_values(array_map(
+                fn(\ReflectionMethod $m) => MethodData::fromReflection($m),
+                $class->getMethods(),
+            )),
+            attributes: array_map(
+                fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                $class->getAttributes(),
+            ),
         );
     }
 
-    // --- Helpers ---
+    // --- ReflectionClassInterface ---
 
-    public function hasParent(): bool
+    public function getName(): string
     {
-        return $this->parent !== null;
+        return $this->name;
     }
 
-    public function hasInterface(string $interface): bool
+    public function getShortName(): string
+    {
+        return $this->shortName;
+    }
+
+    public function getNamespaceName(): string
+    {
+        return $this->namespace;
+    }
+
+    public function isAbstract(): bool
+    {
+        return $this->abstract;
+    }
+
+    public function isFinal(): bool
+    {
+        return $this->final;
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->readonly;
+    }
+
+    public function isInterface(): bool
+    {
+        return $this->interface;
+    }
+
+    public function isTrait(): bool
+    {
+        return $this->trait;
+    }
+
+    public function isEnum(): bool
+    {
+        return $this->enum;
+    }
+
+    public function isAnonymous(): bool
+    {
+        return $this->anonymous;
+    }
+
+    public function getParentClass(): string|false
+    {
+        return $this->parent ?? false;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getInterfaceNames(): array
+    {
+        return $this->interfaces;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getTraitNames(): array
+    {
+        return $this->traits;
+    }
+
+    public function implementsInterface(string $interface): bool
     {
         return in_array($interface, $this->interfaces, strict: true);
     }
 
-    public function hasTrait(string $trait): bool
+    public function usesTrait(string $trait): bool
     {
         return in_array($trait, $this->traits, strict: true);
     }
 
-    public function getMethod(string $name): ?MethodData
+    public function hasMethod(string $name): bool
     {
         foreach ($this->methods as $method) {
-            if ($method->name === $name) {
+            if ($method->getName() === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasProperty(string $name): bool
+    {
+        foreach ($this->properties as $property) {
+            if ($property->getName() === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasConstant(string $name): bool
+    {
+        foreach ($this->constants as $constant) {
+            if ($constant->getName() === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getConstructor(): ?ReflectionMethodInterface
+    {
+        foreach ($this->methods as $method) {
+            if ($method->isConstructor()) {
                 return $method;
             }
         }
@@ -87,82 +206,57 @@ readonly class ClassData
         return null;
     }
 
-    public function getProperty(string $name): ?PropertyData
+    public function getMethod(string $name): ReflectionMethodInterface
+    {
+        foreach ($this->methods as $method) {
+            if ($method->getName() === $name) {
+                return $method;
+            }
+        }
+
+        throw new MethodNotFoundException($this->name, $name);
+    }
+
+    public function getProperty(string $name): ReflectionPropertyInterface
     {
         foreach ($this->properties as $property) {
-            if ($property->name === $name) {
+            if ($property->getName() === $name) {
                 return $property;
             }
         }
 
-        return null;
-    }
-
-    public function getConstant(string $name): ?ConstantData
-    {
-        foreach ($this->constants as $constant) {
-            if ($constant->name === $name) {
-                return $constant;
-            }
-        }
-
-        return null;
-    }
-
-    public function getConstructor(): ?MethodData
-    {
-        foreach ($this->methods as $method) {
-            if ($method->isConstructor) {
-                return $method;
-            }
-        }
-
-        return null;
-    }
-
-    // --- Private helpers ---
-
-    /**
-     * @return ConstantData[]
-     */
-    private static function resolveConstants(\ReflectionClass $class): array
-    {
-        return array_values(array_map(
-            fn(\ReflectionClassConstant $c) => ConstantData::fromReflection($c),
-            $class->getReflectionConstants(),
-        ));
+        throw new PropertyNotFoundException($this->name, $name);
     }
 
     /**
-     * @return PropertyData[]
+     * @return ReflectionMethodInterface[]
      */
-    private static function resolveProperties(\ReflectionClass $class): array
+    public function getMethods(): array
     {
-        return array_values(array_map(
-            fn(\ReflectionProperty $p) => PropertyData::fromReflection($p),
-            $class->getProperties(),
-        ));
+        return $this->methods;
     }
 
     /**
-     * @return MethodData[]
+     * @return ReflectionPropertyInterface[]
      */
-    private static function resolveMethods(\ReflectionClass $class): array
+    public function getProperties(): array
     {
-        return array_values(array_map(
-            fn(\ReflectionMethod $m) => MethodData::fromReflection($m),
-            $class->getMethods(),
-        ));
+        return $this->properties;
     }
 
     /**
-     * @return AttributeData[]
+     * @return ReflectionClassConstantInterface[]
      */
-    private static function resolveAttributes(\ReflectionClass $class): array
+    public function getReflectionConstants(): array
     {
-        return array_map(
-            fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
-            $class->getAttributes(),
-        );
+        return $this->constants;
+    }
+
+    /**
+     * @return ReflectionAttributeInterface[]
+     */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
     }
 }

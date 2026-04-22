@@ -4,27 +4,40 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Data;
 
-final readonly class AttributeData
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionAttributeInterface;
+
+readonly class AttributeData implements ReflectionAttributeInterface
 {
     public function __construct(
-        public string $name,      
-        public int $target,       
-        public array $arguments,  
+        private string $name,
+        private int $target,
+        private array $arguments,
     ) {}
 
     public static function fromReflection(\ReflectionAttribute $attribute): self
     {
         return new self(
-            name: $attribute->getName(),
-            target: $attribute->getTarget(),
+            name:      $attribute->getName(),
+            target:    $attribute->getTarget(),
             arguments: $attribute->getArguments(),
         );
     }
 
-    /**
-     * Attempts to instantiate the actual attribute object.
-     * This is optional and the consumer decides when/if to do this.
-     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getTarget(): int
+    {
+        return $this->target;
+    }
+
+    public function getArguments(): array
+    {
+        return $this->arguments;
+    }
+
     public function newInstance(): object
     {
         return new ($this->name)(...$this->arguments);

@@ -4,41 +4,99 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Data;
 
-readonly class MethodData
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionMethodInterface;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionTypeInterface;
+use Rcalicdan\ReflectionSerializer\Internal\TypeResolver;
+
+readonly class MethodData implements ReflectionMethodInterface
 {
     public function __construct(
-        public string $name,
-        public bool $isPublic,
-        public bool $isProtected,
-        public bool $isPrivate,
-        public bool $isStatic,
-        public bool $isAbstract,
-        public bool $isFinal,
-        public bool $isConstructor,
-        public bool $isDestructor,
-        public ?TypeData $returnType,
+        private string $name,
+        private bool $public,
+        private bool $protected,
+        private bool $private,
+        private bool $static,
+        private bool $abstract,
+        private bool $final,
+        private bool $constructor,
+        private bool $destructor,
+        private ?ReflectionTypeInterface $returnType,
         /** @var ParameterData[] */
-        public array $parameters,
+        private array $parameters,
         /** @var AttributeData[] */
-        public array $attributes,
+        private array $attributes,
     ) {}
 
     public static function fromReflection(\ReflectionMethod $method): self
     {
         return new self(
-            name:          $method->getName(),
-            isPublic:      $method->isPublic(),
-            isProtected:   $method->isProtected(),
-            isPrivate:     $method->isPrivate(),
-            isStatic:      $method->isStatic(),
-            isAbstract:    $method->isAbstract(),
-            isFinal:       $method->isFinal(),
-            isConstructor: $method->isConstructor(),
-            isDestructor:  $method->isDestructor(),
-            returnType:    self::resolveType($method),
-            parameters:    self::resolveParameters($method),
-            attributes:    self::resolveAttributes($method),
+            name:        $method->getName(),
+            public:      $method->isPublic(),
+            protected:   $method->isProtected(),
+            private:     $method->isPrivate(),
+            static:      $method->isStatic(),
+            abstract:    $method->isAbstract(),
+            final:       $method->isFinal(),
+            constructor: $method->isConstructor(),
+            destructor:  $method->isDestructor(),
+            returnType:  TypeResolver::resolve(
+                             $method->getReturnType(),
+                             $method->getReturnType()?->allowsNull() ?? false,
+                         ),
+            parameters:  array_map(
+                             fn(\ReflectionParameter $p) => ParameterData::fromReflection($p),
+                             $method->getParameters(),
+                         ),
+            attributes:  array_map(
+                             fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                             $method->getAttributes(),
+                         ),
         );
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function isPublic(): bool
+    {
+        return $this->public;
+    }
+
+    public function isProtected(): bool
+    {
+        return $this->protected;
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->private;
+    }
+
+    public function isStatic(): bool
+    {
+        return $this->static;
+    }
+
+    public function isAbstract(): bool
+    {
+        return $this->abstract;
+    }
+
+    public function isFinal(): bool
+    {
+        return $this->final;
+    }
+
+    public function isConstructor(): bool
+    {
+        return $this->constructor;
+    }
+
+    public function isDestructor(): bool
+    {
+        return $this->destructor;
     }
 
     public function hasReturnType(): bool
@@ -46,12 +104,35 @@ readonly class MethodData
         return $this->returnType !== null;
     }
 
+    public function getReturnType(): ?ReflectionTypeInterface
+    {
+        return $this->returnType;
+    }
+
+    /**
+     * @return ParameterData[]
+     */
+    public function getParameters(): array
+    {
+        return $this->parameters;
+    }
+
+    /**
+     * @return AttributeData[]
+     */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
+    // --- Helpers ---
+
     public function visibility(): string
     {
         return match (true) {
-            $this->isPublic    => 'public',
-            $this->isProtected => 'protected',
-            $this->isPrivate   => 'private',
+            $this->public    => 'public',
+            $this->protected => 'protected',
+            $this->private   => 'private',
         };
     }
 
@@ -59,15 +140,15 @@ readonly class MethodData
     {
         $parts = [$this->visibility()];
 
-        if ($this->isAbstract) {
+        if ($this->abstract) {
             $parts[] = 'abstract';
         }
 
-        if ($this->isFinal) {
+        if ($this->final) {
             $parts[] = 'final';
         }
 
-        if ($this->isStatic) {
+        if ($this->static) {
             $parts[] = 'static';
         }
 
@@ -79,63 +160,11 @@ readonly class MethodData
         $signature = 'function ' . $this->name . '(' . $params . ')';
 
         if ($this->returnType !== null) {
-            $signature .= ': ' . $this->returnType->toString();
+            $signature .= ': ' . $this->returnType;
         }
 
         $parts[] = $signature;
 
         return implode(' ', $parts);
-    }
-
-    private static function resolveType(\ReflectionMethod $method): ?TypeData
-    {
-        $type = $method->getReturnType();
-
-        if ($type === null) {
-            return null;
-        }
-
-        return match (true) {
-            $type instanceof \ReflectionNamedType        => TypeData::fromNamed(
-                $type->getName(),
-                $type->allowsNull(),
-            ),
-            $type instanceof \ReflectionUnionType        => TypeData::fromUnion(
-                array_map(
-                    fn(\ReflectionNamedType $t) => $t->getName(),
-                    $type->getTypes(),
-                ),
-                $type->allowsNull() ?? false,
-            ),
-            $type instanceof \ReflectionIntersectionType => TypeData::fromIntersection(
-                array_map(
-                    fn(\ReflectionNamedType $t) => $t->getName(),
-                    $type->getTypes(),
-                ),
-            ),
-            default => null,
-        };
-    }
-
-    /**
-     * @return ParameterData[]
-     */
-    private static function resolveParameters(\ReflectionMethod $method): array
-    {
-        return array_map(
-            fn(\ReflectionParameter $p) => ParameterData::fromReflection($p),
-            $method->getParameters(),
-        );
-    }
-
-    /**
-     * @return AttributeData[]
-     */
-    private static function resolveAttributes(\ReflectionMethod $method): array
-    {
-        return array_map(
-            fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
-            $method->getAttributes(),
-        );
     }
 }

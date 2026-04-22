@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Data;
 
-final readonly class ParameterData
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionParameterInterface;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionTypeInterface;
+use Rcalicdan\ReflectionSerializer\Internal\TypeResolver;
+use Rcalicdan\ReflectionSerializer\Internal\ValueExporter;
+
+readonly class ParameterData implements ReflectionParameterInterface
 {
     public function __construct(
-        public string $name,
-        public int $position,
-        public ?TypeData $type,
-        public bool $isNullable,
-        public bool $isVariadic,
-        public bool $isPassedByReference,
-        public bool $isPromoted,
-        public bool $hasDefault,
-        public mixed $defaultValue,
+        private string $name,
+        private int $position,
+        private ?ReflectionTypeInterface $type,
+        private bool $nullable,
+        private bool $variadic,
+        private bool $passByReference,
+        private bool $promoted,
+        private bool $hasDefault,
+        private mixed $defaultValue,
         /** @var AttributeData[] */
-        public array $attributes,
+        private array $attributes,
     ) {}
 
     public static function fromReflection(\ReflectionParameter $parameter): self
@@ -25,17 +30,33 @@ final readonly class ParameterData
         [$hasDefault, $defaultValue] = self::resolveDefault($parameter);
 
         return new self(
-            name: $parameter->getName(),
-            position: $parameter->getPosition(),
-            type: self::resolveType($parameter),
-            isNullable: $parameter->allowsNull(),
-            isVariadic: $parameter->isVariadic(),
-            isPassedByReference: $parameter->isPassedByReference(),
-            isPromoted: $parameter->isPromoted(),
-            hasDefault: $hasDefault,
-            defaultValue: $defaultValue,
-            attributes: self::resolveAttributes($parameter),
+            name:           $parameter->getName(),
+            position:       $parameter->getPosition(),
+            type:           TypeResolver::resolve(
+                                $parameter->getType(),
+                                $parameter->allowsNull(),
+                            ),
+            nullable:       $parameter->allowsNull(),
+            variadic:       $parameter->isVariadic(),
+            passByReference: $parameter->isPassedByReference(),
+            promoted:       $parameter->isPromoted(),
+            hasDefault:     $hasDefault,
+            defaultValue:   $defaultValue,
+            attributes:     array_map(
+                                fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
+                                $parameter->getAttributes(),
+                            ),
         );
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getPosition(): int
+    {
+        return $this->position;
     }
 
     public function hasType(): bool
@@ -43,69 +64,77 @@ final readonly class ParameterData
         return $this->type !== null;
     }
 
+    public function getType(): ?ReflectionTypeInterface
+    {
+        return $this->type;
+    }
+
+    public function allowsNull(): bool
+    {
+        return $this->nullable;
+    }
+
+    public function isVariadic(): bool
+    {
+        return $this->variadic;
+    }
+
+    public function isPassedByReference(): bool
+    {
+        return $this->passByReference;
+    }
+
+    public function isPromoted(): bool
+    {
+        return $this->promoted;
+    }
+
     public function isOptional(): bool
     {
-        return $this->hasDefault || $this->isVariadic;
+        return $this->hasDefault || $this->variadic;
+    }
+
+    public function isDefaultValueAvailable(): bool
+    {
+        return $this->hasDefault;
+    }
+
+    public function getDefaultValue(): mixed
+    {
+        return $this->defaultValue;
     }
 
     /**
-     * Returns a human-readable string representation of the parameter,
-     * e.g. "?string $name = null", "int ...$values", "Foo &$ref"
+     * @return AttributeData[]
      */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
     public function toString(): string
     {
         $parts = [];
 
         if ($this->type !== null) {
-            $parts[] = $this->type->toString();
+            $parts[] = (string) $this->type;
         }
 
-        $name = ($this->isPassedByReference ? '&' : '')
-            . ($this->isVariadic ? '...' : '')
-            . '$' . $this->name;
+        $name = ($this->passByReference ? '&' : '')
+              . ($this->variadic ? '...' : '')
+              . '$' . $this->name;
 
         $parts[] = $name;
 
         if ($this->hasDefault) {
-            $parts[] = '= ' . self::exportValue($this->defaultValue);
+            $parts[] = '= ' . ValueExporter::export($this->defaultValue);
         }
 
         return implode(' ', $parts);
     }
 
-    private static function resolveType(\ReflectionParameter $parameter): ?TypeData
-    {
-        $type = $parameter->getType();
-
-        if ($type === null) {
-            return null;
-        }
-
-        return match (true) {
-            $type instanceof \ReflectionNamedType        => TypeData::fromNamed(
-                $type->getName(),
-                $type->allowsNull(),
-            ),
-            $type instanceof \ReflectionUnionType        => TypeData::fromUnion(
-                array_map(
-                    fn(\ReflectionNamedType $t) => $t->getName(),
-                    $type->getTypes()
-                ),
-                $parameter->allowsNull(),
-            ),
-            $type instanceof \ReflectionIntersectionType => TypeData::fromIntersection(
-                array_map(
-                    fn(\ReflectionNamedType $t) => $t->getName(),
-                    $type->getTypes()
-                ),
-            ),
-            default => null,
-        };
-    }
-
     private static function resolveDefault(\ReflectionParameter $parameter): array
     {
-        // Parameters with no default and variadic params have no default value
         if ($parameter->isVariadic() || !$parameter->isOptional()) {
             return [false, null];
         }
@@ -113,32 +142,7 @@ final readonly class ParameterData
         try {
             return [true, $parameter->getDefaultValue()];
         } catch (\ReflectionException) {
-            // Default is defined in a C extension (internal function),
-            // not accessible from userland — we flag it but store null
             return [true, null];
         }
-    }
-
-    /**
-     * @return AttributeData[]
-     */
-    private static function resolveAttributes(\ReflectionParameter $parameter): array
-    {
-        return array_map(
-            fn(\ReflectionAttribute $a) => AttributeData::fromReflection($a),
-            $parameter->getAttributes(),
-        );
-    }
-
-    private static function exportValue(mixed $value): string
-    {
-        return match (true) {
-            $value === null  => 'null',
-            $value === true  => 'true',
-            $value === false => 'false',
-            is_string($value) => '"' . addslashes($value) . '"',
-            is_array($value)  => '[' . implode(', ', array_map(self::exportValue(...), $value)) . ']',
-            default           => (string) $value,
-        };
     }
 }
