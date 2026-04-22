@@ -11,15 +11,18 @@ use Rcalicdan\ReflectionSerializer\Internal\TypeResolver;
 readonly class UnionTypeData implements ReflectionUnionTypeInterface
 {
     public function __construct(
-        /** @var ReflectionTypeInterface[] */
+        /**
+         * @var ReflectionTypeInterface[]
+         */
         private array $types,
-    ) {}
+    ) {
+    }
 
     public static function fromReflection(\ReflectionUnionType $type): self
     {
         return new self(
             types: array_map(
-                fn(\ReflectionType $t) => TypeResolver::resolve($t),
+                fn (\ReflectionType $t) => TypeResolver::resolve($t),
                 $type->getTypes(),
             ),
         );
@@ -51,6 +54,7 @@ readonly class UnionTypeData implements ReflectionUnionTypeInterface
                 if ($t instanceof IntersectionTypeData) {
                     return '(' . (string) $t . ')';
                 }
+
                 return (string) $t;
             },
             $this->types,

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Rcalicdan\ReflectionSerializer\Internal;
 
-use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionTypeInterface;
 use Rcalicdan\ReflectionSerializer\Data\IntersectionTypeData;
 use Rcalicdan\ReflectionSerializer\Data\NamedTypeData;
 use Rcalicdan\ReflectionSerializer\Data\UnionTypeData;
+use Rcalicdan\ReflectionSerializer\Interfaces\ReflectionTypeInterface;
 
 /**
  * @internal
@@ -22,8 +22,8 @@ final class TypeResolver
         }
 
         return match (true) {
-            $type instanceof \ReflectionNamedType        => NamedTypeData::fromReflection($type),
-            $type instanceof \ReflectionUnionType        => UnionTypeData::fromReflection($type),
+            $type instanceof \ReflectionNamedType => NamedTypeData::fromReflection($type),
+            $type instanceof \ReflectionUnionType => UnionTypeData::fromReflection($type),
             $type instanceof \ReflectionIntersectionType => IntersectionTypeData::fromReflection($type),
         };
     }
@@ -40,13 +40,13 @@ final class TypeResolver
             ),
             'union' => new UnionTypeData(
                 types: array_map(
-                    fn(array $t) => self::fromArray($t),
+                    fn (array $t) => self::fromArray($t),
                     $data['types'],
                 ),
             ),
             'intersection' => new IntersectionTypeData(
                 types: array_map(
-                    fn(array $t) => self::fromArray($t),
+                    fn (array $t) => self::fromArray($t),
                     $data['types'],
                 ),
             ),

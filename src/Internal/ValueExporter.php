@@ -16,11 +16,11 @@ final class ValueExporter
         }
 
         return match (true) {
-            $value === null   => 'null',
-            $value === true   => 'true',
-            $value === false  => 'false',
-            is_string($value) => '"' . addslashes($value) . '"',
-            default           => (string) $value,
+            $value === null => 'null',
+            $value === true => 'true',
+            $value === false => 'false',
+            \is_string($value) => '"' . addslashes($value) . '"',
+            default => (string) $value,
         };
     }
 

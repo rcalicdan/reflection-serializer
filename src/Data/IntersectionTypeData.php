@@ -10,15 +10,18 @@ use Rcalicdan\ReflectionSerializer\Internal\TypeResolver;
 readonly class IntersectionTypeData implements ReflectionTypeInterface
 {
     public function __construct(
-        /** @var ReflectionTypeInterface[] */
+        /**
+         * @var ReflectionTypeInterface[]
+         */
         private array $types,
-    ) {}
+    ) {
+    }
 
     public static function fromReflection(\ReflectionIntersectionType $type): self
     {
         return new self(
             types: array_map(
-                fn(\ReflectionType $t) => TypeResolver::resolve($t),
+                fn (\ReflectionType $t) => TypeResolver::resolve($t),
                 $type->getTypes(),
             ),
         );
@@ -40,7 +43,7 @@ readonly class IntersectionTypeData implements ReflectionTypeInterface
     public function __toString(): string
     {
         return implode('&', array_map(
-            fn(ReflectionTypeInterface $t) => (string) $t,
+            fn (ReflectionTypeInterface $t) => (string) $t,
             $this->types,
         ));
     }
